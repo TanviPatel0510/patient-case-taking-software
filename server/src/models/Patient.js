@@ -1,0 +1,98 @@
+import mongoose from "mongoose";
+
+const patientSchema = new mongoose.Schema(
+  {
+    // ABDM & Aadhaar National Digital Health Ecosystem Linkage
+    identity: {
+      abhaNumber: {
+        type: String,
+        unique: true,
+        sparse: true,
+        index: true,
+        trim: true, // 14-digit ABHA ID (e.g. 12-3456-7890-1234)
+      },
+      abhaAddress: {
+        type: String,
+        unique: true,
+        sparse: true,
+        index: true,
+        trim: true, // e.g. rahul.sharma@abdm
+      },
+      isAbhaVerified: {
+        type: Boolean,
+        default: false,
+      },
+      aadhaarLastFour: {
+        type: String,
+        trim: true, // Last 4 digits of Aadhaar
+      },
+      aadhaarRefToken: {
+        type: String, // UIDAI e-KYC reference / verification token
+      },
+    },
+
+    // Patient Demographics
+    demographics: {
+      fullName: {
+        type: String,
+        required: [true, "Patient full name is required"],
+        trim: true,
+      },
+      gender: {
+        type: String,
+        enum: ["male", "female", "other"],
+        required: [true, "Gender is required"],
+      },
+      dateOfBirth: {
+        type: Date,
+      },
+      age: {
+        type: Number,
+        required: [true, "Age is required"],
+        min: 0,
+        max: 130,
+      },
+      phone: {
+        type: String,
+        required: [true, "Phone number is required"],
+        index: true,
+        trim: true,
+      },
+      address: {
+        villageOrCity: String,
+        district: String,
+        state: String,
+        pincode: String,
+      },
+      emergencyContact: {
+        name: String,
+        relationship: String,
+        phone: String,
+      },
+    },
+
+    // Multilingual & Accessibility Settings for Low-Literacy / Elderly Patients
+    preferences: {
+      preferredLanguage: {
+        type: String,
+        enum: ["hi", "en", "bn", "mr", "te", "ta", "gu", "kn", "ml", "pa", "or"],
+        default: "hi",
+      },
+      accessibilityMode: {
+        audioGuided: { type: Boolean, default: true },
+        highContrast: { type: Boolean, default: false },
+        largeFont: { type: Boolean, default: false },
+        signLanguageAvatar: { type: Boolean, default: false },
+      },
+    },
+
+    // Patient Web/Mobile Dashboard Access
+    auth: {
+      passwordHash: String,
+      lastLogin: Date,
+    },
+  },
+  { timestamps: true }
+);
+
+export const Patient = mongoose.model("Patient", patientSchema);
