@@ -1,0 +1,24 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config();
+
+export const env = {
+  port: Number(process.env.PORT || 5000),
+  mongoUri: process.env.MONGODB_URI,
+  clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
+  jwtSecret: process.env.JWT_SECRET || "development-only-change-me",
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d",
+  otpExpiresMinutes: Number(process.env.OTP_EXPIRES_MINUTES || 15),
+  otpMaxAttempts: Number(process.env.OTP_MAX_ATTEMPTS || 10),
+  otpResendCooldownSeconds: Number(process.env.OTP_RESEND_COOLDOWN_SECONDS || 0),
+  otpHourlyLimit: Number(process.env.OTP_HOURLY_LIMIT || 9999),
+  isProduction: process.env.NODE_ENV === "production",
+};
+
+if (!env.mongoUri) {
+  throw new Error("MONGODB_URI is required. Add it to server/.env before starting the server.");
+}

@@ -40,7 +40,7 @@ const patientSchema = new mongoose.Schema(
       },
       gender: {
         type: String,
-        enum: ["male", "female", "other"],
+        enum: ["male", "female", "other", "prefer_not_to_say"],
         required: [true, "Gender is required"],
       },
       dateOfBirth: {
@@ -51,12 +51,6 @@ const patientSchema = new mongoose.Schema(
         required: [true, "Age is required"],
         min: 0,
         max: 130,
-      },
-      phone: {
-        type: String,
-        required: [true, "Phone number is required"],
-        index: true,
-        trim: true,
       },
       address: {
         villageOrCity: String,
@@ -86,10 +80,25 @@ const patientSchema = new mongoose.Schema(
       },
     },
 
-    // Patient Web/Mobile Dashboard Access
-    auth: {
-      passwordHash: String,
-      lastLogin: Date,
+    medicalProfile: {
+      heightCm: String,
+      weightKg: String,
+      bloodGroup: String,
+      chronicConditions: { type: [String], default: [] },
+      allergies: { type: [String], default: [] },
+      medications: { type: [String], default: [] },
+    },
+
+    consent: {
+      accepted: { type: Boolean, required: true },
+      acceptedAt: { type: Date },
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "inactive", "deceased"],
+      default: "active",
+      index: true,
     },
   },
   { timestamps: true }
