@@ -13,12 +13,17 @@ import {
 import { AppShell } from "../components/AppShell";
 import { login as apiLogin, requestPatientOtp, verifyPatientOtp } from "../services/auth.service";
 import { useAuth } from "../context/AuthContext";
-import { getRoleDefaultPath } from "../constants/roles";
+import {
+  getRoleDefaultPath,
+  getRoleDashboardPath,
+  getSafeRedirectPath,
+  ROLE_LABELS,
+} from "../constants/roles";
 
 export function Login({ go, onAuthenticated }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setSession } = useAuth();
+  const { user, setSession } = useAuth();
 
   const handleNavigate = (to, options) => {
     if (typeof go === "function") {
@@ -28,7 +33,11 @@ export function Login({ go, onAuthenticated }) {
     }
   };
 
-  const [mode, setMode] = useState("patient"); // "patient" | "doctor"
+  const isDoctorRedirect =
+    location.state?.from?.pathname?.startsWith("/doctor") ||
+    location.state?.requiredRoles?.includes("doctor");
+
+  const [mode, setMode] = useState(() => (isDoctorRedirect ? "doctor" : "patient"));
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -97,9 +106,10 @@ export function Login({ go, onAuthenticated }) {
       }
       setSession(result);
 
-      // Redirect to originally requested protected route or default path (profiles for patient)
-      const defaultDestination = getRoleDefaultPath(result.role);
-      const targetPath = location.state?.from?.pathname || defaultDestination;
+      // Redirect to originally requested route ONLY if authorized for this role,
+      // otherwise redirect to the role's canonical default dashboard
+      const requestedPath = location.state?.from?.pathname;
+      const targetPath = getSafeRedirectPath(requestedPath, result.role);
       handleNavigate(targetPath, { replace: true });
     } catch (reason) {
       setError(reason.message || "Failed to authenticate. Please check your credentials.");
@@ -160,6 +170,29 @@ export function Login({ go, onAuthenticated }) {
               ? "Use the mobile number linked to your profile."
               : "Use your authorized medical staff credentials."}
           </p>
+
+          {/* Role Mismatch Notice Banner */}
+          {location.state?.roleMismatch && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900">
+              <strong className="block font-bold text-amber-950">
+                Staff Authentication Required
+              </strong>
+              <p className="mt-0.5 text-amber-800 leading-relaxed">
+                The requested URL requires {location.state?.requiredRoles?.map(r => ROLE_LABELS[r] || r).join(" or ") || "staff"} privileges.
+                Please sign in with your authorized credentials below.
+              </p>
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => handleNavigate(getRoleDashboardPath(user.role))}
+                  className="mt-2.5 inline-flex items-center gap-1 font-bold text-[#0c5e5b] hover:underline cursor-pointer"
+                >
+                  <span>Return to your {ROLE_LABELS[user.role] || user.role} Dashboard</span>
+                  <RiArrowRightLine className="size-3.5" />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Full-bleed Seamless Segmented Tab Switcher */}
           <div className="mt-5 grid grid-cols-2 rounded-xl bg-[#eef5f2] p-1 border border-[#d8e8e2]">

@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { authService } from "../services/auth.service";
 import { patientsService } from "../services/patients.service";
 import { getRoleDashboardPath, getRoleDefaultPath } from "../constants/roles";
@@ -27,9 +26,6 @@ export function AuthProvider({ children }) {
   // State checking for existing JWT token in cookies
   const [hasExistingToken, setHasExistingToken] = useState(() => checkCookieForToken());
 
-  const location = useLocation();
-  const navigate = useNavigate();
-
   /**
    * Hits the backend /auth/me endpoint with credentials to verify session
    * and load current user, profiles, and verified role.
@@ -54,15 +50,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
-  // If user has an active session and is on the login page, automatically log in and navigate
-  useEffect(() => {
-    if (!loading && user && location.pathname === "/login") {
-      const defaultPath = getRoleDefaultPath(user.role);
-      const from = location.state?.from?.pathname || defaultPath;
-      navigate(from, { replace: true });
-    }
-  }, [loading, user, location.pathname, location.state, navigate]);
 
   /**
    * Log in user with credentials and set active session

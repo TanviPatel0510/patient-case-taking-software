@@ -45,3 +45,42 @@ export function getRoleDefaultPath(role) {
   }
   return ROLE_DASHBOARD_PATHS[role] || "/";
 }
+
+/**
+ * Checks whether a given path is valid and authorized for a specific role.
+ */
+export function isPathAllowedForRole(path, role) {
+  if (!path || typeof path !== "string" || !role) return false;
+
+  // Normalize path and remove query parameters or trailing slashes for comparison
+  const cleanPath = path.split("?")[0].toLowerCase().trim();
+
+  if (role === ROLES.PATIENT) {
+    return cleanPath.startsWith("/patient") || cleanPath === "/profiles";
+  }
+  if (role === ROLES.DOCTOR) {
+    return cleanPath.startsWith("/doctor");
+  }
+  if (role === ROLES.TRIAGE_NURSE) {
+    return cleanPath.startsWith("/triage_nurse");
+  }
+  if (role === ROLES.ADMIN) {
+    return cleanPath.startsWith("/admin");
+  }
+  if (role === ROLES.KIOSK) {
+    return cleanPath.startsWith("/kiosk");
+  }
+  return false;
+}
+
+/**
+ * Validates a target destination path against the given role.
+ * If targetPath is not authorized for that role, safely falls back
+ * to the role's canonical dashboard path.
+ */
+export function getSafeRedirectPath(targetPath, role) {
+  if (targetPath && isPathAllowedForRole(targetPath, role)) {
+    return targetPath;
+  }
+  return getRoleDefaultPath(role);
+}
