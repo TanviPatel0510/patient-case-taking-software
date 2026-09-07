@@ -78,7 +78,7 @@ export function Login({ go, onAuthenticated }) {
       }
 
       onAuthenticated(result);
-      go(result.role === "patient" ? "/profiles" : `/dashboard/${result.role}`);
+      go(result.role === "patient" ? "/patient/dashboard" : `/dashboard/${result.role}`);
     } catch (reason) {
       setError(reason.message || "Failed to authenticate. Please check your credentials.");
     } finally {

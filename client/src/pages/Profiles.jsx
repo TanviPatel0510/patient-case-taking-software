@@ -16,7 +16,7 @@ export function Profiles({ session, go, onSelected, signOut }) {
     try {
       const result = await selectPatientProfile(patientId);
       onSelected(result);
-      go("/dashboard/patient");
+      go("/patient/dashboard");
     } catch (reason) {
       setError(reason.message);
     } finally {

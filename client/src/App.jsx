@@ -4,6 +4,7 @@ import { Welcome } from "./pages/Welcome";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { RoleDashboard } from "./pages/RoleDashboard";
+import { PatientDashboard } from "./pages/PateintDashboard";
 import { Profiles } from "./pages/Profiles";
 
 export default function App() {
@@ -11,10 +12,23 @@ export default function App() {
   const [session, setSession] = useState(null);
 
   useEffect(() => {
-    getSession().then((result) => {
-      setSession(result);
-      if (result) setPath(result.role === "patient" ? "/profiles" : `/dashboard/${result.role}`);
-    }).catch(() => setSession(null));
+    getSession()
+      .then((result) => {
+        setSession(result);
+        if (result) {
+          if (result.role === "patient") {
+            if (
+              ["/", "/login"].includes(window.location.pathname) ||
+              window.location.pathname.startsWith("/dashboard")
+            ) {
+              setPath("/patient/dashboard");
+            }
+          } else {
+            setPath(`/dashboard/${result.role}`);
+          }
+        }
+      })
+      .catch(() => setSession(null));
   }, []);
 
   const go = (next) => {
@@ -39,6 +53,20 @@ export default function App() {
 
   if (path === "/profiles") {
     return <Profiles session={session} go={go} onSelected={setSession} signOut={signOut} />;
+  }
+
+  if (
+    path === "/patient/dashboard" ||
+    path === "/dashboard/patient" ||
+    path === "/patient-dashboard"
+  ) {
+    return (
+      <PatientDashboard
+        session={session}
+        go={go}
+        signOut={signOut}
+      />
+    );
   }
 
   if (path.startsWith("/dashboard")) {
