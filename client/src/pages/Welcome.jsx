@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   RiArrowRightLine,
   RiCheckboxCircleFill,
@@ -10,8 +11,18 @@ import {
 import { AppShell } from "../components/AppShell";
 
 export function Welcome({ go }) {
+  const navigate = useNavigate();
+
+  const handleNavigate = (to) => {
+    if (typeof go === "function") {
+      go(to);
+    } else {
+      navigate(to);
+    }
+  };
+
   return (
-    <AppShell go={go}>
+    <AppShell go={handleNavigate}>
       <section className="grid grid-cols-1 items-center gap-12 py-6 lg:grid-cols-2 lg:gap-16">
         {/* Left Column: Hero Text */}
         <div>
@@ -66,7 +77,7 @@ export function Welcome({ go }) {
           <button
             type="button"
             className="group mt-6 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#0c5e5b] bg-white p-4 text-left transition-all duration-150 hover:bg-[#f8fcfb] hover:shadow-xs cursor-pointer"
-            onClick={() => go("/login")}
+            onClick={() => handleNavigate("/login")}
           >
             <div className="flex items-center gap-3.5">
               <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#e3f3f0] text-[#0c5e5b]">
@@ -88,7 +99,7 @@ export function Welcome({ go }) {
           <button
             type="button"
             className="group mt-3.5 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#dcebe5] bg-white p-4 text-left transition-all duration-150 hover:border-[#0c5e5b]/40 hover:bg-[#f8fcfb] hover:shadow-xs cursor-pointer"
-            onClick={() => go("/register")}
+            onClick={() => handleNavigate("/register")}
           >
             <div className="flex items-center gap-3.5">
               <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#fef1ec] text-[#e06a3b]">
@@ -123,3 +134,5 @@ export function Welcome({ go }) {
     </AppShell>
   );
 }
+
+export default Welcome;

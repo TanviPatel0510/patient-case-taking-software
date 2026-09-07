@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { RiArrowLeftSLine, RiArrowRightLine, RiUserAddLine } from "@remixicon/react";
 
 import { AppShell } from "../components/AppShell";
-import { registerPatient, registerPatientProfile, requestPatientOtp } from "../lib/api";
+import { registerPatient, registerPatientProfile, requestPatientOtp } from "../services";
+import { useAuth } from "../context/AuthContext";
 
 const initialForm = {
   abhaNumber: "",
@@ -154,8 +156,20 @@ function FormSection({ title, description, children }) {
   );
 }
 
-export function Register({ session, go, onAuthenticated }) {
-  const searchParams = new URLSearchParams(window.location.search);
+export function Register({ session: propSession, go, onAuthenticated }) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user: authUser, setSession } = useAuth();
+  const session = propSession || authUser;
+
+  const handleNavigate = (to) => {
+    if (typeof go === "function") {
+      go(to);
+    } else {
+      navigate(to);
+    }
+  };
+
   const isAddingProfile = searchParams.get("add") === "1";
   const paramIdentifier = searchParams.get("identifier") || "";
   const hasLoginOtp = Boolean(paramIdentifier) && !isAddingProfile;
@@ -206,8 +220,11 @@ export function Register({ session, go, onAuthenticated }) {
       const result = isAddingProfile
         ? await registerPatientProfile(payload)
         : await registerPatient(payload);
-      onAuthenticated(result);
-      go("/profiles");
+      if (typeof onAuthenticated === "function") {
+        onAuthenticated(result);
+      }
+      setSession(result);
+      handleNavigate("/profiles");
     } catch (reason) {
       setError(reason.message || "Failed to complete registration. Please verify your details.");
     } finally {
@@ -216,13 +233,13 @@ export function Register({ session, go, onAuthenticated }) {
   };
 
   return (
-    <AppShell go={go}>
+    <AppShell go={handleNavigate}>
       <form className="mx-auto my-6 mb-20 max-w-[880px]" onSubmit={submit}>
         <div className="flex items-center justify-between">
           <button
             type="button"
             className="group inline-flex items-center gap-1 text-xs font-semibold text-[#0c5e5b] transition-colors hover:text-[#084341] cursor-pointer"
-            onClick={() => go("/")}
+            onClick={() => handleNavigate("/")}
           >
             <RiArrowLeftSLine className="size-4 transition-transform group-hover:-translate-x-0.5" />
             <span>Back to welcome</span>
@@ -230,7 +247,7 @@ export function Register({ session, go, onAuthenticated }) {
           <button
             type="button"
             className="text-xs font-semibold text-[#5d7c80] hover:text-[#0c5e5b] cursor-pointer"
-            onClick={() => go("/login")}
+            onClick={() => handleNavigate("/login")}
           >
             Already have an account?{" "}
             <span className="font-bold text-[#0c5e5b] underline">Sign in</span>

@@ -1,11 +1,33 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { RiArrowRightLine, RiLogoutBoxRLine, RiUserAddLine, RiUserLine } from "@remixicon/react";
 
 import { AppShell } from "../components/AppShell";
 import { Button } from "../components/ui/button";
-import { selectPatientProfile } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
-export function Profiles({ session, go, onSelected, signOut }) {
+export function Profiles({ session: propSession, go, onSelected, signOut }) {
+  const navigate = useNavigate();
+  const { user: authUser, logout, selectProfile } = useAuth();
+  const session = propSession || authUser;
+
+  const handleNavigate = (to) => {
+    if (typeof go === "function") {
+      go(to);
+    } else {
+      navigate(to);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (typeof signOut === "function") {
+      signOut();
+    } else {
+      await logout();
+      handleNavigate("/login");
+    }
+  };
+
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
   const profiles = session?.profiles || [];
@@ -14,18 +36,20 @@ export function Profiles({ session, go, onSelected, signOut }) {
     setBusyId(patientId);
     setError("");
     try {
-      const result = await selectPatientProfile(patientId);
-      onSelected(result);
-      go("/dashboard/patient");
+      const result = await selectProfile(patientId);
+      if (typeof onSelected === "function") {
+        onSelected(result);
+      }
+      handleNavigate("/patient/dashboard");
     } catch (reason) {
-      setError(reason.message);
+      setError(reason.message || "Failed to select profile.");
     } finally {
       setBusyId("");
     }
   };
 
   return (
-    <AppShell go={go}>
+    <AppShell go={handleNavigate}>
       <section className="mx-auto my-12 max-w-[840px] px-4">
         <div className="flex items-end justify-between gap-6 max-[760px]:flex-col max-[760px]:items-start">
           <div>
@@ -41,7 +65,7 @@ export function Profiles({ session, go, onSelected, signOut }) {
           <Button
             variant="outline"
             className="inline-flex items-center gap-2 rounded-full border border-[#d1e2dc] bg-white px-5 py-2 text-xs font-bold text-[#0c5e5b] shadow-xs hover:bg-[#e2f2ef] cursor-pointer"
-            onClick={signOut}
+            onClick={handleSignOut}
           >
             <RiLogoutBoxRLine className="size-4" />
             Logout
@@ -78,7 +102,7 @@ export function Profiles({ session, go, onSelected, signOut }) {
 
         <Button
           className="mt-6 inline-flex items-center justify-center gap-2.5 rounded-full bg-[#0c5e5b] px-7 py-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(12,94,91,.25)] hover:bg-[#084341] cursor-pointer"
-          onClick={() => go(`/register?add=1&identifier=${encodeURIComponent(session?.user?.phone || session?.user?.email || "")}`)}
+          onClick={() => handleNavigate(`/register?add=1&identifier=${encodeURIComponent(session?.user?.phone || session?.user?.email || "")}`)}
         >
           <RiUserAddLine className="size-4" />
           Add Dependent / Family Profile
@@ -87,3 +111,5 @@ export function Profiles({ session, go, onSelected, signOut }) {
     </AppShell>
   );
 }
+
+export default Profiles;

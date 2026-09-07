@@ -22,11 +22,16 @@ function publicPatient(patient) {
 
 function publicProfile(link) {
   const patient = link.patientId;
+  if (!patient) return null;
   return {
     id: patient._id,
     fullName: patient.demographics?.fullName,
     age: patient.demographics?.age,
     gender: patient.demographics?.gender,
+    preferredLanguage: patient.preferences?.preferredLanguage,
+    abhaStatus: patient.identity?.isAbhaVerified ? "Verified" : "Not Verified",
+    demographics: patient.demographics,
+    medicalProfile: patient.medicalProfile,
     relation: link.relation,
     isPrimary: link.isPrimary,
   };
@@ -211,7 +216,7 @@ export async function getCurrentUser(req, res) {
     }
     return res.json({ user: staffData, role: record.role });
   }
-  return res.json(await patientSession(record));
+  return res.json(await patientSession(record, req.auth?.selectedPatientId));
 }
 
 export function logout(req, res) {
@@ -270,9 +275,16 @@ async function consumeOtp(identifier, code, purpose) {
   return { ok: true };
 }
 
-async function patientSession(user) {
+async function patientSession(user, selectedPatientId) {
   const links = await UserPatientProfile.find({ userId: user.id }).populate("patientId").sort({ isPrimary: -1, createdAt: 1 });
-  return { user: publicUser(user), profiles: links.map(publicProfile), role: "patient" };
+  const activeLink = selectedPatientId ? links.find((l) => String(l.patientId?._id) === String(selectedPatientId)) : links[0];
+  const activePatient = activeLink?.patientId || links[0]?.patientId;
+  return {
+    user: publicUser(user),
+    profiles: links.map(publicProfile).filter(Boolean),
+    patient: activePatient ? publicPatient(activePatient) : null,
+    role: "patient",
+  };
 }
 
 function publicUser(user) {

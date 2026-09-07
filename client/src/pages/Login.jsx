@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   RiArrowLeftSLine,
   RiArrowRightLine,
@@ -10,9 +11,23 @@ import {
 } from "@remixicon/react";
 
 import { AppShell } from "../components/AppShell";
-import { login, requestPatientOtp, verifyPatientOtp } from "../lib/api";
+import { login as apiLogin, requestPatientOtp, verifyPatientOtp } from "../services/auth.service";
+import { useAuth } from "../context/AuthContext";
+import { getRoleDefaultPath } from "../constants/roles";
 
 export function Login({ go, onAuthenticated }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { setSession } = useAuth();
+
+  const handleNavigate = (to, options) => {
+    if (typeof go === "function") {
+      go(to);
+    } else {
+      navigate(to, options);
+    }
+  };
+
   const [mode, setMode] = useState("patient"); // "patient" | "doctor"
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +56,7 @@ export function Login({ go, onAuthenticated }) {
     try {
       const result = await requestPatientOtp(identifier);
       if (result.requiresRegistration) {
-        go(`/register?identifier=${encodeURIComponent(identifier)}`);
+        handleNavigate(`/register?identifier=${encodeURIComponent(identifier)}`);
         return;
       }
       setOtpRequested(true);
@@ -73,12 +88,19 @@ export function Login({ go, onAuthenticated }) {
         }
         result = await verifyPatientOtp(identifier, otp);
       } else {
-        // Doctor password authentication
-        result = await login({ identifier, password });
+        // Doctor / staff password authentication
+        result = await apiLogin({ identifier, password });
       }
 
-      onAuthenticated(result);
-      go(result.role === "patient" ? "/profiles" : `/dashboard/${result.role}`);
+      if (typeof onAuthenticated === "function") {
+        onAuthenticated(result);
+      }
+      setSession(result);
+
+      // Redirect to originally requested protected route or default path (profiles for patient)
+      const defaultDestination = getRoleDefaultPath(result.role);
+      const targetPath = location.state?.from?.pathname || defaultDestination;
+      handleNavigate(targetPath, { replace: true });
     } catch (reason) {
       setError(reason.message || "Failed to authenticate. Please check your credentials.");
     } finally {
@@ -123,7 +145,7 @@ export function Login({ go, onAuthenticated }) {
           <button
             type="button"
             className="group mb-5 inline-flex items-center gap-1 text-xs font-semibold text-[#0c5e5b] transition-colors hover:text-[#084341] cursor-pointer"
-            onClick={() => go("/")}
+            onClick={() => handleNavigate("/")}
           >
             <RiArrowLeftSLine className="size-4 transition-transform group-hover:-translate-x-0.5" />
             <span>Back to welcome</span>
@@ -336,7 +358,7 @@ export function Login({ go, onAuthenticated }) {
               <button
                 type="button"
                 className="font-bold text-[#0c5e5b] hover:underline cursor-pointer"
-                onClick={() => go("/register")}
+                onClick={() => handleNavigate("/register")}
               >
                 Register here
               </button>
