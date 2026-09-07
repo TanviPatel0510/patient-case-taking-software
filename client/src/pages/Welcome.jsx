@@ -73,7 +73,7 @@ export function Welcome({ go }) {
             </p>
           </div>
 
-          {/* Option 1: Existing Patient (Login) */}
+          {/* Option 1: Login */}
           <button
             type="button"
             className="group mt-6 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#0c5e5b] bg-white p-4 text-left transition-all duration-150 hover:bg-[#f8fcfb] hover:shadow-xs cursor-pointer"
@@ -85,17 +85,17 @@ export function Welcome({ go }) {
               </span>
               <div>
                 <strong className="block text-base font-bold text-[#143337]">
-                  Existing patient
+                  Login
                 </strong>
                 <span className="block text-xs text-[#5d7c80] mt-0.5">
-                  Sign in to your health profile
+                  Sign in for patients and medical staff
                 </span>
               </div>
             </div>
             <RiArrowRightLine className="size-5 shrink-0 text-[#0c5e5b] transition-transform duration-150 group-hover:translate-x-0.5" />
           </button>
 
-          {/* Option 2: New Patient (Register) */}
+          {/* Option 2: Register Patient */}
           <button
             type="button"
             className="group mt-3.5 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#dcebe5] bg-white p-4 text-left transition-all duration-150 hover:border-[#0c5e5b]/40 hover:bg-[#f8fcfb] hover:shadow-xs cursor-pointer"
@@ -107,7 +107,7 @@ export function Welcome({ go }) {
               </span>
               <div>
                 <strong className="block text-base font-bold text-[#143337]">
-                  New patient
+                  Register patient
                 </strong>
                 <span className="block text-xs text-[#5d7c80] mt-0.5">
                   Create your MediKiosk profile

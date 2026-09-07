@@ -1,2 +1,2 @@
-export * from "./PateintDashboard";
-export { default } from "./PateintDashboard";
+export * from "./patient/PatientDashboard";
+export { default } from "./patient/PatientDashboard";
