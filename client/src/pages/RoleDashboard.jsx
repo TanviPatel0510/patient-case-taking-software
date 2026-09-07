@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   RiArrowRightLine,
   RiHeartPulseLine,
@@ -7,18 +8,12 @@ import {
 
 import { AppShell } from "../components/AppShell";
 import { Button } from "../components/ui/button";
+import { useAuth } from "../context/AuthContext";
+import { ROLE_LABELS } from "../constants/roles";
 
-const roleLabels = {
-  patient: "Patient",
-  doctor: "Doctor",
-  triage_nurse: "Triage nurse",
-  admin: "Administrator",
-  kiosk: "Kiosk",
-};
-
-function EmptyDashboard({ go }) {
+function EmptyDashboard({ onNavigate }) {
   return (
-    <AppShell go={go}>
+    <AppShell go={onNavigate}>
       <section className="grid min-h-[520px] place-items-center text-center">
         <div className="rounded-3xl border border-[#d1e2dc] bg-white/90 p-10 shadow-[0_20px_50px_rgba(12,94,91,.08)] backdrop-blur-md">
           <span className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-[#e2f2ef] text-[#0c5e5b]">
@@ -28,7 +23,7 @@ function EmptyDashboard({ go }) {
           <p className="mt-2 text-sm text-[#556e72]">Please login to access your role-specific clinical portal.</p>
           <Button
             className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-[#0c5e5b] px-7 py-3 text-xs font-bold text-white shadow-md hover:bg-[#084341] cursor-pointer"
-            onClick={() => go("/login")}
+            onClick={() => onNavigate("/login")}
           >
             Go to Login
             <RiArrowRightLine className="size-4" />
@@ -39,18 +34,39 @@ function EmptyDashboard({ go }) {
   );
 }
 
-export function RoleDashboard({ session, go, signOut }) {
+export function RoleDashboard({ session: propSession, go, signOut }) {
+  const navigate = useNavigate();
+  const { user: authUser, logout } = useAuth();
+  const session = propSession || authUser;
+
+  const handleNavigate = (to) => {
+    if (typeof go === "function") {
+      go(to);
+    } else {
+      navigate(to);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (typeof signOut === "function") {
+      signOut();
+    } else {
+      await logout();
+      handleNavigate("/login");
+    }
+  };
+
   if (!session) {
-    return <EmptyDashboard go={go} />;
+    return <EmptyDashboard onNavigate={handleNavigate} />;
   }
 
   const role = session.role || "patient";
   const person = session.patient || session.user;
-  const roleLabel = roleLabels[role] || role;
+  const roleLabel = ROLE_LABELS[role] || role;
   const name = person?.fullName || person?.name || roleLabel;
 
   return (
-    <AppShell go={go}>
+    <AppShell go={handleNavigate}>
       <section className="py-12 pb-20">
         <div className="flex items-end justify-between gap-5 max-[760px]:flex-col max-[760px]:items-start">
           <div>
@@ -68,7 +84,7 @@ export function RoleDashboard({ session, go, signOut }) {
           <Button
             variant="outline"
             className="inline-flex items-center gap-2 rounded-full border border-[#d1e2dc] bg-white px-5 py-2 text-xs font-bold text-[#0c5e5b] shadow-xs hover:bg-[#e2f2ef] cursor-pointer"
-            onClick={signOut}
+            onClick={handleSignOut}
           >
             <RiLogoutBoxRLine className="size-4" />
             Logout
@@ -114,7 +130,7 @@ export function RoleDashboard({ session, go, signOut }) {
           </p>
           <Button
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0c5e5b] px-6 py-3.5 text-xs font-bold text-white shadow-md hover:bg-[#084341] cursor-pointer"
-            onClick={() => go("/")}
+            onClick={() => handleNavigate("/")}
           >
             Return to Home
             <RiArrowRightLine className="size-4" />
@@ -124,3 +140,5 @@ export function RoleDashboard({ session, go, signOut }) {
     </AppShell>
   );
 }
+
+export default RoleDashboard;

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   RiArrowRightLine,
   RiHeartPulseLine,
@@ -7,6 +8,7 @@ import {
 } from "@remixicon/react";
 
 import { AppShell } from "../components/AppShell";
+import { useAuth } from "../context/AuthContext";
 
 const languageNames = {
   hi: "Hindi",
@@ -22,7 +24,28 @@ const languageNames = {
   or: "Odia",
 };
 
-export function PatientDashboard({ session, go, signOut }) {
+export function PatientDashboard({ session: propSession, go, signOut }) {
+  const navigate = useNavigate();
+  const { user: authUser, logout } = useAuth();
+  const session = propSession || authUser;
+
+  const handleNavigate = (to) => {
+    if (typeof go === "function") {
+      go(to);
+    } else {
+      navigate(to);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (typeof signOut === "function") {
+      signOut();
+    } else {
+      await logout();
+      handleNavigate("/login");
+    }
+  };
+
   // Extract active patient details from session
   const patient =
     session?.patient ||
@@ -61,14 +84,14 @@ export function PatientDashboard({ session, go, signOut }) {
     (patient?.identity?.isAbhaVerified ? "Verified" : "Not Verified");
 
   return (
-    <AppShell go={go}>
+    <AppShell go={handleNavigate}>
       <section className="mx-auto w-full max-w-[1180px] py-4 pb-16">
         {/* Top Header Controls (Logout / Switch Profile) */}
         <div className="mb-4 flex items-center justify-end gap-3">
           <button
             type="button"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0c5e5b] hover:underline cursor-pointer"
-            onClick={() => go("/profiles")}
+            onClick={() => handleNavigate("/profiles")}
           >
             <RiUserLine className="size-4" />
             <span>Switch profile</span>
@@ -77,7 +100,7 @@ export function PatientDashboard({ session, go, signOut }) {
           <button
             type="button"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5d7c80] hover:text-[#0c5e5b] cursor-pointer"
-            onClick={signOut}
+            onClick={handleSignOut}
           >
             <RiLogoutBoxRLine className="size-4" />
             <span>Logout</span>
