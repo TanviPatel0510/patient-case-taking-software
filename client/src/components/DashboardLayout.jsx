@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getNavigationForRole } from "../constants/navigation";
 import { ROLE_LABELS } from "../constants/roles";
+import { LanguageSelector } from "./LanguageSelector";
 
 /**
  * Reusable, responsive dashboard navigation layout.
@@ -340,8 +341,11 @@ export function DashboardLayout({
             </Link>
           </div>
 
-          {/* Right section: User / Account section & Logout icon button */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Right section: Language selector, User / Account section & Logout icon button */}
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            {/* Language Selector next to profile */}
+            <LanguageSelector />
+
             {/* User details */}
             <div className="flex items-center gap-2.5 text-right">
               <div className="hidden sm:flex flex-col text-right max-w-[180px]">

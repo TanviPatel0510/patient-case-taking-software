@@ -54,7 +54,7 @@ export async function registerPatient(req, res) {
       abhaNumber, abhaAddress, aadhaarLastFour, fullName, dateOfBirth, gender,
       identifier, mobileNumber, email, preferredLanguage, villageOrCity, district, state,
       pincode, emergencyContactName, emergencyContactRelationship,
-      emergencyContactPhone, heightCm, weightKg, bloodGroup, chronicConditions,
+      emergencyContactPhone, chronicConditions,
       allergies, medications, consent, otp,
     } = req.body;
 
@@ -77,42 +77,84 @@ export async function registerPatient(req, res) {
       if (conflictingUser) return res.status(409).json({ message: "The phone number or email is already linked to another account." });
     }
 
-    if (abhaNumber && await Patient.exists({ "identity.abhaNumber": abhaNumber })) {
+    const cleanAbhaNumber = abhaNumber && String(abhaNumber).trim() ? String(abhaNumber).trim() : undefined;
+    const cleanAbhaAddress = abhaAddress && String(abhaAddress).trim() ? String(abhaAddress).trim().toLowerCase() : undefined;
+    const cleanAadhaarLastFour = aadhaarLastFour && String(aadhaarLastFour).trim() ? String(aadhaarLastFour).trim() : undefined;
+
+    if (cleanAbhaNumber && (await Patient.exists({ "identity.abhaNumber": cleanAbhaNumber }))) {
       return res.status(409).json({ message: "This ABHA number is already registered." });
     }
-    if (abhaAddress && await Patient.exists({ "identity.abhaAddress": abhaAddress })) {
+    if (cleanAbhaAddress && (await Patient.exists({ "identity.abhaAddress": cleanAbhaAddress }))) {
       return res.status(409).json({ message: "This ABHA address is already registered." });
     }
-    if (aadhaarLastFour && await Patient.exists({ "identity.aadhaarLastFour": aadhaarLastFour })) {
+    if (cleanAadhaarLastFour && (await Patient.exists({ "identity.aadhaarLastFour": cleanAadhaarLastFour }))) {
       return res.status(409).json({ message: "This Aadhaar reference is already registered." });
     }
 
     const birthDate = new Date(dateOfBirth);
     const age = Math.max(0, Math.floor((Date.now() - birthDate.getTime()) / 31557600000));
-    const user = accountUser || await User.create({ name: fullName, ...contact, role: "patient", isVerified: true });
+    const user = accountUser || (await User.create({ name: fullName, ...contact, role: "patient", isVerified: true }));
+
+    const patientIdentity = {};
+    if (cleanAbhaNumber) patientIdentity.abhaNumber = cleanAbhaNumber;
+    if (cleanAbhaAddress) patientIdentity.abhaAddress = cleanAbhaAddress;
+    if (cleanAadhaarLastFour) patientIdentity.aadhaarLastFour = cleanAadhaarLastFour;
+
     const patient = await Patient.create({
-      identity: { abhaNumber, abhaAddress, aadhaarLastFour },
+      identity: patientIdentity,
       demographics: {
-        fullName, gender, dateOfBirth: birthDate, age,
+        fullName,
+        gender,
+        dateOfBirth: birthDate,
+        age,
         address: { villageOrCity, district, state, pincode },
-        emergencyContact: { name: emergencyContactName, relationship: emergencyContactRelationship, phone: emergencyContactPhone },
+        emergencyContact: {
+          name: emergencyContactName,
+          relationship: emergencyContactRelationship,
+          phone: emergencyContactPhone,
+        },
       },
       preferences: { preferredLanguage },
-      medicalProfile: { heightCm, weightKg, bloodGroup, chronicConditions: chronicConditions || [], allergies: allergies || [], medications: medications || [] },
+      medicalProfile: {
+        chronicConditions: chronicConditions || [],
+        allergies: allergies || [],
+        medications: medications || [],
+      },
       consent: { accepted: true, acceptedAt: new Date() },
     });
+
+    let relation = "self";
+    if (accountUser) {
+      const rawRel = String(req.body.emergencyContactRelationship || "").trim().toLowerCase();
+      const validRelations = ["child", "spouse", "parent", "sibling", "dependent", "other"];
+      relation = validRelations.includes(rawRel) ? rawRel : "dependent";
+    }
 
     const link = await UserPatientProfile.create({
       userId: user.id,
       patientId: patient.id,
-      relation: accountUser ? (req.body.emergencyContactRelationship || "dependent") : "self",
+      relation,
       isPrimary: !accountUser,
     });
-    const token = signToken({ sub: user.id, role: "patient" });
+    const token = signToken({ sub: user.id, role: "patient", selectedPatientId: patient.id });
     setAuthCookie(res, token);
-    return res.status(201).json({ user: publicUser(user), profiles: [{ ...publicProfile({ patientId: patient, relation: link.relation, isPrimary: link.isPrimary }) }], role: "patient" });
+    return res.status(201).json(await patientSession(user, patient.id));
   } catch (error) {
-    if (error.code === 11000) return res.status(409).json({ message: "A patient with one of these identity details already exists." });
+    console.error("registerPatient error:", error);
+    if (error.code === 11000) {
+      const keyPattern = error.keyPattern || {};
+      const key = Object.keys(keyPattern)[0] || "";
+      if (key.includes("abhaNumber")) return res.status(409).json({ message: "This ABHA number is already registered." });
+      if (key.includes("abhaAddress")) return res.status(409).json({ message: "This ABHA address is already registered." });
+      if (key.includes("aadhaarLastFour")) return res.status(409).json({ message: "This Aadhaar reference is already registered." });
+      if (key.includes("phone")) return res.status(409).json({ message: "This phone number is already registered." });
+      if (key.includes("email")) {
+        const dupEmail = error.keyValue?.email;
+        if (dupEmail) return res.status(409).json({ message: `This email address (${dupEmail}) is already registered.` });
+        return res.status(409).json({ message: "A patient account with this identity already exists." });
+      }
+      return res.status(409).json({ message: "A patient with one of these identity details already exists." });
+    }
     return res.status(400).json({ message: error.message || "Unable to register patient." });
   }
 }
@@ -149,6 +191,162 @@ export async function login(req, res) {
   }
 }
 
+export async function validatePatientRegistration(req, res) {
+  try {
+    const {
+      abhaNumber,
+      abhaAddress,
+      aadhaarLastFour,
+      fullName,
+      dateOfBirth,
+      gender,
+      mobileNumber,
+      email,
+      preferredLanguage,
+      villageOrCity,
+      district,
+      state,
+      pincode,
+      emergencyContactName,
+      emergencyContactRelationship,
+      emergencyContactPhone,
+      consent,
+      isAddingProfile,
+    } = req.body;
+
+    const isAdding = Boolean(isAddingProfile || req.auth?.role === "patient");
+
+    const errors = {};
+
+    // 1. Mandatory Identity & Demographics
+    if (!fullName || !String(fullName).trim()) {
+      errors.fullName = "Full name is required.";
+    }
+
+    if (!dateOfBirth) {
+      errors.dateOfBirth = "Date of birth is required.";
+    } else {
+      const dob = new Date(dateOfBirth);
+      if (isNaN(dob.getTime())) {
+        errors.dateOfBirth = "Enter a valid date of birth.";
+      } else if (dob > new Date()) {
+        errors.dateOfBirth = "Date of birth cannot be in the future.";
+      }
+    }
+
+    if (!gender) {
+      errors.gender = "Please select a gender.";
+    }
+
+    if (preferredLanguage) {
+      const allowedLanguages = ["en", "hi", "bn", "gu", "kn", "ml", "mr", "ta", "te", "or", "as", "pa"];
+      if (!allowedLanguages.includes(preferredLanguage)) {
+        errors.preferredLanguage = "Please select a supported language.";
+      }
+    }
+
+    // 2. Mobile validation & uniqueness
+    const normMobile = normalizeIdentifier(mobileNumber);
+    if (!normMobile) {
+      errors.mobileNumber = "Enter a valid 10-digit mobile number.";
+    } else if (!isAdding) {
+      const existingUser = await User.findOne({ phone: normMobile });
+      if (existingUser) {
+        errors.mobileNumber = "This mobile number is already registered. Please sign in.";
+      }
+    }
+
+    // 3. Email validation & uniqueness (optional field)
+    if (email && String(email).trim()) {
+      const normEmail = String(email).trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normEmail)) {
+        errors.email = "Enter a valid email address.";
+      } else if (!isAdding) {
+        const existingUser = await User.findOne({ email: normEmail });
+        if (existingUser) {
+          errors.email = "This email address is already registered.";
+        }
+      }
+    }
+
+    // 4. Address (all mandatory)
+    if (!villageOrCity || !String(villageOrCity).trim()) {
+      errors.villageOrCity = "Village or city is required.";
+    }
+
+    if (!district || !String(district).trim()) {
+      errors.district = "District is required.";
+    }
+
+    if (!state || !String(state).trim()) {
+      errors.state = "Please select a state.";
+    }
+
+    if (!pincode || !/^\d{6}$/.test(String(pincode).trim())) {
+      errors.pincode = "Enter a valid 6-digit PIN code.";
+    }
+
+    // 5. Emergency Contact (all mandatory)
+    if (!emergencyContactName || !String(emergencyContactName).trim()) {
+      errors.emergencyContactName = "Emergency contact name is required.";
+    }
+
+    if (!emergencyContactRelationship || !String(emergencyContactRelationship).trim()) {
+      errors.emergencyContactRelationship = "Please select relationship.";
+    }
+
+    const normEmergencyPhone = normalizeIdentifier(emergencyContactPhone);
+    if (!normEmergencyPhone) {
+      errors.emergencyContactPhone = "Enter a valid 10-digit emergency contact phone.";
+    }
+
+    // 6. ABDM / Aadhaar national identity uniqueness
+    if (abhaNumber && String(abhaNumber).trim()) {
+      const cleanAbha = String(abhaNumber).trim();
+      const existingAbha = await Patient.findOne({ "identity.abhaNumber": cleanAbha });
+      if (existingAbha) {
+        errors.abhaNumber = "This ABHA number is already registered.";
+      }
+    }
+
+    if (abhaAddress && String(abhaAddress).trim()) {
+      const cleanAbhaAddress = String(abhaAddress).trim().toLowerCase();
+      const existingAbhaAddress = await Patient.findOne({ "identity.abhaAddress": cleanAbhaAddress });
+      if (existingAbhaAddress) {
+        errors.abhaAddress = "This ABHA address is already registered.";
+      }
+    }
+
+    if (aadhaarLastFour && String(aadhaarLastFour).trim()) {
+      const lastFour = String(aadhaarLastFour).trim();
+      if (!/^\d{4}$/.test(lastFour)) {
+        errors.aadhaarLastFour = "Enter exactly 4 digits.";
+      } else {
+        const existingAadhaar = await Patient.findOne({ "identity.aadhaarLastFour": lastFour });
+        if (existingAadhaar) {
+          errors.aadhaarLastFour = "This Aadhaar reference is already registered.";
+        }
+      }
+    }
+
+    // 7. ABDM Consent
+    if (!consent) {
+      errors.consent = "You must agree to ABDM consent to register.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: "Please correct the highlighted fields before proceeding.",
+        errors,
+      });
+    }
+
+    return res.json({ valid: true });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to validate registration details." });
+  }
+}
+
 export async function requestPatientOtp(req, res) {
   try {
     console.log("Requesting patient OTP for:", req.body.identifier);
@@ -157,6 +355,18 @@ export async function requestPatientOtp(req, res) {
 
     const user = await findUser(identifier);
     if (user && user.role !== "patient") return res.status(409).json({ message: "This identifier belongs to a staff account. Use staff login." });
+
+    if (req.body.purpose === "registration" && user) {
+      return res.status(409).json({
+        message: "This mobile number or email is already registered. Please sign in.",
+        field: identifier.includes("@") ? "email" : "mobileNumber",
+        errors: {
+          [identifier.includes("@") ? "email" : "mobileNumber"]:
+            "This mobile number or email is already registered. Please sign in.",
+        },
+      });
+    }
+
     const purpose = req.body.purpose === "profile_add" && user ? "profile_add" : user ? "login" : "registration";
 
     const code = String(randomInt(100000, 1000000));
@@ -223,6 +433,31 @@ export async function getCurrentUser(req, res) {
 export function logout(req, res) {
   clearAuthCookie(res);
   return res.json({ message: "Signed out." });
+}
+
+export async function updatePreferredLanguage(req, res) {
+  try {
+    const { preferredLanguage } = req.body;
+    const allowed = ["en", "hi", "bn", "gu", "kn", "ml", "mr", "ta", "te", "or", "as", "pa"];
+    if (!allowed.includes(preferredLanguage)) {
+      return res.status(400).json({ message: "Invalid language selection." });
+    }
+
+    if (req.auth.role === "patient") {
+      let patientId = req.auth.selectedPatientId;
+      if (!patientId) {
+        const link = await UserPatientProfile.findOne({ userId: req.auth.sub }).sort({ isPrimary: -1, createdAt: 1 });
+        patientId = link?.patientId;
+      }
+      if (patientId) {
+        await Patient.findByIdAndUpdate(patientId, { "preferences.preferredLanguage": preferredLanguage });
+      }
+    }
+
+    return res.json({ success: true, preferredLanguage });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to update language." });
+  }
 }
 
 function normalizeIdentifier(value) {
