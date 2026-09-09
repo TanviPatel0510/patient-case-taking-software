@@ -3,6 +3,7 @@ import { Patient } from "./Patient.js";
 import { KioskSession } from "./KioskSession.js";
 import { ClinicalCase } from "./ClinicalCase.js";
 import { MedicalDocument } from "./MedicalDocument.js";
+import { MedicalHistoryBundle } from "./MedicalHistoryBundle.js";
 import { ConsentAudit } from "./ConsentAudit.js";
 import { QueueTicket } from "./QueueTicket.js";
 import { AdminProfile } from "./AdminProfile.js";
@@ -18,6 +19,7 @@ export {
   KioskSession,
   ClinicalCase,
   MedicalDocument,
+  MedicalHistoryBundle,
   ConsentAudit,
   QueueTicket,
   AdminProfile,

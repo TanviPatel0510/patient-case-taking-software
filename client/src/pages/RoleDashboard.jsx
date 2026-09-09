@@ -8,8 +8,17 @@ import {
 
 import { AppShell } from "../components/AppShell";
 import { Button } from "../components/ui/button";
-import { useAuth } from "../context/AuthContext";
-import { ROLE_LABELS } from "../constants/roles";
+import { useAuth } from "../hooks/useAuth";
+import { ROLE_LABELS } from "../lib/constants";
+import { MedicalDocsButton } from "../components/medical/MedicalDocsButton";
+
+const roleLabels = {
+  patient: "Patient",
+  doctor: "Doctor",
+  triage_nurse: "Triage nurse",
+  admin: "Administrator",
+  kiosk: "Kiosk",
+};
 
 function EmptyDashboard({ onNavigate }) {
   return (
@@ -128,6 +137,7 @@ export function RoleDashboard({ session: propSession, go, signOut }) {
           <p className="max-w-md text-sm leading-relaxed text-[#556e72]">
             This is your role-aware {roleLabel.toLowerCase()} dashboard. Consultation queues, case-taking intake, and clinical diagnosis modules will be activated here.
           </p>
+          {role === "patient" && <MedicalDocsButton />}
           <Button
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0c5e5b] px-6 py-3.5 text-xs font-bold text-white shadow-md hover:bg-[#084341] cursor-pointer"
             onClick={() => handleNavigate("/")}

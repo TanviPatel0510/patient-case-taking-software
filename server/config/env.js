@@ -16,6 +16,9 @@ export const env = {
   otpMaxAttempts: Number(process.env.OTP_MAX_ATTEMPTS || 10),
   otpResendCooldownSeconds: Number(process.env.OTP_RESEND_COOLDOWN_SECONDS || 0),
   otpHourlyLimit: Number(process.env.OTP_HOURLY_LIMIT || 9999),
+  cloudinaryCloudName: process.env.CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUD_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUD_API_SECRET,
   isProduction: process.env.NODE_ENV === "production",
 };
 

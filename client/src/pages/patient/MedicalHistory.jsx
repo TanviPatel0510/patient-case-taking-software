@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileHeart,
@@ -12,10 +12,38 @@ import {
   Calendar,
   ShieldAlert,
 } from "lucide-react";
+import { RiAddLine } from "@remixicon/react";
 import { DashboardLayout } from "../../components/DashboardLayout";
+import { MedicalBundleForm } from "../../components/medical/MedicalBundleForm";
+import { MedicalHistoryBundleCard } from "../../components/medical/MedicalHistoryBundleCard";
+import { getMedicalHistory } from "../../services";
 
 export function MedicalHistory() {
   const navigate = useNavigate();
+  const [bundles, setBundles] = useState([]);
+  const [bundlesLoading, setBundlesLoading] = useState(true);
+  const [bundlesError, setBundlesError] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadMedicalHistory() {
+      try {
+        const result = await getMedicalHistory();
+        if (active) setBundles(result.bundles || []);
+      } catch (reason) {
+        if (active) setBundlesError(reason.message || "Unable to load medical documents.");
+      } finally {
+        if (active) setBundlesLoading(false);
+      }
+    }
+
+    loadMedicalHistory();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [conditions] = useState([
     {
@@ -100,6 +128,38 @@ export function MedicalHistory() {
             </button>
           </div>
         </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-2xs">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-[#e2f2ef] text-[#0c5e5b]">
+                <FileText className="size-4.5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Uploaded Medical Documents</h2>
+                <span className="text-xs text-gray-500">Records grouped by medical event</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {!bundlesLoading && <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-[#0c5e5b]">{bundles.length} {bundles.length === 1 ? "Bundle" : "Bundles"}</span>}
+              <button
+                type="button"
+                onClick={() => setUploadOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0c5e5b] px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#084341] cursor-pointer"
+              >
+                <RiAddLine className="size-4" />
+                Add Medical Docs
+              </button>
+            </div>
+          </div>
+
+          {bundlesLoading && <p className="mt-4 text-sm text-gray-500">Loading medical documents...</p>}
+          {!bundlesLoading && bundlesError && <p className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">{bundlesError}</p>}
+          {!bundlesLoading && !bundlesError && bundles.length === 0 && <p className="mt-4 text-sm text-gray-500">No uploaded medical documents yet.</p>}
+          {!bundlesLoading && !bundlesError && bundles.length > 0 && <div className="mt-4 grid gap-4">{bundles.map((bundle) => <MedicalHistoryBundleCard key={bundle._id} bundle={bundle} />)}</div>}
+        </div>
+
+        {uploadOpen && <MedicalBundleForm onClose={() => setUploadOpen(false)} onCreated={(bundle) => { setBundles((current) => [bundle, ...current]); setUploadOpen(false); }} />}
 
         {/* Section 1: Chronic Conditions & Medical Diagnoses */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-2xs">
