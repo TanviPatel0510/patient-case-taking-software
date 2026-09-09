@@ -14,3 +14,17 @@ export function requireAuth(req, res, next) {
     return res.status(401).json({ message: "Your session has expired. Please sign in again." });
   }
 }
+
+export function optionalAuth(req, res, next) {
+  const token = req.cookies?.medikiosk_token;
+
+  if (token) {
+    try {
+      req.auth = verifyToken(token);
+    } catch {
+      // Ignore invalid or expired token for optional authentication
+    }
+  }
+  next();
+}
+

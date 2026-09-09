@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { RiHeartPulseLine, RiShieldCheckLine } from "@remixicon/react";
+import { LanguageSelector } from "./LanguageSelector";
 
 export function AppShell({ children, go }) {
   const navigate = useNavigate();
@@ -29,9 +30,12 @@ export function AppShell({ children, go }) {
           </span>
         </button>
 
-        <div className="flex items-center gap-2 text-sm font-medium text-[#5d7c80]">
-          <RiShieldCheckLine className="size-4 text-[#0c5e5b]" />
-          <span>Private & secure</span>
+        <div className="flex items-center gap-3.5">
+          <LanguageSelector />
+          <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-[#5d7c80]">
+            <RiShieldCheckLine className="size-4 text-[#0c5e5b]" />
+            <span>Private & secure</span>
+          </div>
         </div>
       </header>
 

@@ -9,7 +9,55 @@
 </head>
 
 <body>
+  <div id="google_translate_element" style="display: none;"></div>
   <div id="root"></div>
+
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      if (window.google && window.google.translate) {
+        new window.google.translate.TranslateElement(
+          {
+            pageLanguage: "en",
+            includedLanguages: "en,hi,bn,gu,kn,ml,mr,ta,te,or,as,pa",
+            autoDisplay: false,
+          },
+          "google_translate_element"
+        );
+      }
+    }
+
+    // Continuously suppress Google Translate banner and body offset
+    if (typeof MutationObserver !== "undefined") {
+      const observer = new MutationObserver(() => {
+        if (document.body) {
+          if (document.body.style.top && document.body.style.top !== "0px") {
+            document.body.style.setProperty("top", "0px", "important");
+          }
+          if (document.body.style.position && document.body.style.position !== "static") {
+            document.body.style.setProperty("position", "static", "important");
+          }
+          document
+            .querySelectorAll("body > .skiptranslate, .goog-te-banner-frame, iframe.skiptranslate")
+            .forEach((el) => {
+              if (el.id !== "google_translate_element") {
+                el.style.setProperty("display", "none", "important");
+                el.style.setProperty("visibility", "hidden", "important");
+                el.style.setProperty("height", "0", "important");
+              }
+            });
+        }
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+      });
+    }
+  </script>
+  <script
+    type="text/javascript"
+    src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+  ></script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

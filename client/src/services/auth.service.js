@@ -22,6 +22,12 @@ export const authService = {
   logout: () => apiClient.post("/auth/logout"),
 
   /**
+   * Validate patient registration details and check uniqueness before OTP
+   */
+  validatePatientRegistration: (data) =>
+    apiClient.post("/auth/patient/validate-registration", data),
+
+  /**
    * Request OTP for patient authentication or registration
    */
   requestPatientOtp: (identifier, purpose) =>
@@ -32,6 +38,12 @@ export const authService = {
    */
   verifyPatientOtp: (identifier, otp) =>
     apiClient.post("/auth/patient/verify-otp", { identifier, otp }),
+
+  /**
+   * Update patient preferred language
+   */
+  updatePreferredLanguage: (preferredLanguage) =>
+    apiClient.put("/auth/patient/preferred-language", { preferredLanguage }),
 };
 
 export const {
@@ -39,8 +51,10 @@ export const {
   getMe,
   getSession,
   logout,
+  validatePatientRegistration,
   requestPatientOtp,
   verifyPatientOtp,
+  updatePreferredLanguage,
 } = authService;
 
 export default authService;
