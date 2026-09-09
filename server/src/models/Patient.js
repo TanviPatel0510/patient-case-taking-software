@@ -10,6 +10,7 @@ const patientSchema = new mongoose.Schema(
         sparse: true,
         index: true,
         trim: true, // 14-digit ABHA ID (e.g. 12-3456-7890-1234)
+        set: (v) => (v && v.trim() ? v.trim() : undefined),
       },
       abhaAddress: {
         type: String,
@@ -17,6 +18,7 @@ const patientSchema = new mongoose.Schema(
         sparse: true,
         index: true,
         trim: true, // e.g. rahul.sharma@abdm
+        set: (v) => (v && v.trim() ? v.trim().toLowerCase() : undefined),
       },
       isAbhaVerified: {
         type: Boolean,
@@ -25,6 +27,7 @@ const patientSchema = new mongoose.Schema(
       aadhaarLastFour: {
         type: String,
         trim: true, // Last 4 digits of Aadhaar
+        set: (v) => (v && v.trim() ? v.trim() : undefined),
       },
       aadhaarRefToken: {
         type: String, // UIDAI e-KYC reference / verification token
@@ -69,8 +72,8 @@ const patientSchema = new mongoose.Schema(
     preferences: {
       preferredLanguage: {
         type: String,
-        enum: ["hi", "en", "bn", "mr", "te", "ta", "gu", "kn", "ml", "pa", "or"],
-        default: "hi",
+        enum: ["en", "hi", "bn", "gu", "kn", "ml", "mr", "ta", "te", "or", "as", "pa"],
+        default: "en",
       },
       accessibilityMode: {
         audioGuided: { type: Boolean, default: true },
