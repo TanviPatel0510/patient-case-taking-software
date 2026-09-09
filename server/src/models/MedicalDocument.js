@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+/*import mongoose from "mongoose";
 
 const medicalDocumentSchema = new mongoose.Schema(
   {
@@ -68,4 +68,127 @@ const medicalDocumentSchema = new mongoose.Schema(
 );
 
 export const MedicalDocument = mongoose.model("MedicalDocument", medicalDocumentSchema);
+*/
 
+import mongoose from "mongoose";
+
+const medicalDocumentSchema = new mongoose.Schema(
+  {
+    patientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Patient",
+      required: true,
+      index: true,
+    },
+
+    caseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ClinicalCase",
+      index: true,
+    },
+
+    // Links this document to one medical-history bundle
+    bundleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MedicalHistoryBundle",
+      required: true,
+      index: true,
+    },
+
+    // UI category
+    documentType: {
+      type: String,
+      enum: [
+        "prescription",
+        "report",
+        "summary",
+      ],
+      required: true,
+    },
+
+    // Cloudinary URL
+    fileUrl: {
+      type: String,
+      required: true,
+    },
+
+    // Cloudinary public ID
+    cloudinaryPublicId: {
+      type: String,
+      required: true,
+    },
+
+    originalFileName: {
+      type: String,
+    },
+
+    mimeType: {
+      type: String,
+    },
+
+    fileSize: {
+      type: Number,
+    },
+
+    documentDate: {
+      type: Date,
+      index: true,
+    },
+
+    // OCR information
+    ocr: {
+      rawText: String,
+
+      confidenceScore: {
+        type: Number,
+        min: 0,
+        max: 1,
+      },
+
+      detectedLanguage: String,
+
+      isHandwritten: {
+        type: Boolean,
+        default: false,
+      },
+    },
+
+    // Information extracted from document
+    extractedData: {
+      diagnoses: [String],
+
+      medications: [
+        {
+          drugName: String,
+          dosage: String,
+          frequency: String,
+          duration: String,
+        },
+      ],
+
+      investigations: [
+        {
+          testName: String,
+          observedValue: String,
+          unit: String,
+          referenceRange: String,
+
+          isAbnormal: {
+            type: Boolean,
+            default: false,
+          },
+        },
+      ],
+
+      potentialDrugInteractions: [String],
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const MedicalDocument = mongoose.model(
+  "MedicalDocument",
+  medicalDocumentSchema
+);

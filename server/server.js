@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import { env } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
+import medicalHistoryRoutes from "./src/routes/medical-history.routes.js";
+import medicalDocumentRoutes from "./src/routes/medical-document.routes.js";
 
 export function createApp() {
   const app = express();
@@ -17,6 +19,8 @@ export function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/medical-history", medicalHistoryRoutes);
+  app.use("/api/medical-documents", medicalDocumentRoutes);
 
   return app;
 }

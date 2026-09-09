@@ -94,6 +94,14 @@ const patientSchema = new mongoose.Schema(
       acceptedAt: { type: Date },
     },
 
+    // Patient Medical History Bundles
+    bundles: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "MedicalHistoryBundle",
+      },
+    ],
+
     status: {
       type: String,
       enum: ["active", "inactive", "deceased"],

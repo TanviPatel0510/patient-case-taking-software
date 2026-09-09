@@ -151,6 +151,7 @@ export async function login(req, res) {
 
 export async function requestPatientOtp(req, res) {
   try {
+    console.log("Requesting patient OTP for:", req.body.identifier);
     const identifier = normalizeIdentifier(req.body.identifier);
     if (!identifier) return res.status(400).json({ message: "Enter a valid phone number or email address." });
 
